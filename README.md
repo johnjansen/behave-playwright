@@ -45,17 +45,17 @@ A robust test automation framework built with Python, utilizing Behave for BDD, 
 4. Execute `allure serve FOLDER_PATH` to start and create allure-report
 
 # Notes:
-1. Test is using "https://www.saucedemo.com"
-2. Test will be executed in parallel scenario by scenario
-3. Create Gmail Key Password
+1. Test is using https://www.saucedemo.com
+3. Test will be executed in parallel scenario by scenario
+4. Create Gmail Key Password
    ```
    1. Goto: https://myaccount.google.com/apppasswords
    2. Enter App Name
    3. Copy generated password
    4. Provide in resources/details.ini
    ```
-4. The test runs on local browsers. But docker support is also available (Refer `start_docker_compose()` in [runner.py](runner.py))
-5. Reports will be available as below:
+5. The test runs on local browsers. But docker support is also available (Refer `start_docker_compose()` in [runner.py](runner.py))
+6. Reports will be available as below:
      - Allure: `reports/allure_report`
      - Behavex HTML: `report/html`
-6. Refer [behave.ini](behave.ini) for all settings
+7. Refer [behave.ini](behave.ini) for all settings
