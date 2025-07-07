@@ -7,3 +7,4 @@ pycommons-lang
 playwright
 requests
 configparser
+setuptools
