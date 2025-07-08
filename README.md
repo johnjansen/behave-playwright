@@ -1,38 +1,60 @@
-# Behave-Playwright Test Framework
+# Behave-Playwright Bootstrap
 
-Python test automation framework using Behave (BDD) + Playwright + BehaveX for parallel execution.
+Bootstrap a new test automation project with Behave + Playwright + BehaveX.
 
-## macOS Setup
+## Quick Start
 
 ```bash
+# Bootstrap new project
+./bootstrap.sh my-project-name /path/to/new/directory
+
+# Or in current directory
+./bootstrap.sh my-project-name
+
+# Setup and run
+cd my-project-name
 make setup
-```
-
-## Run Tests
-
-```bash
 make test
 ```
 
-## View Reports
+## What You Get
 
-```bash
-make report
+- **Behave** - BDD test framework
+- **Playwright** - Browser automation
+- **BehaveX** - Parallel execution
+- **Allure** - Test reporting
+- **Sample tests** - Working examples
+- **Makefile** - Simple commands
+
+## Commands
+
+- `make setup` - Install everything
+- `make test` - Run tests
+- `make test-headless` - Run headless
+- `make report` - View Allure reports
+- `make clean` - Clean up
+- `make help` - Show help
+
+## Structure
+
+```
+my-project/
+├── tests/
+│   ├── features/     # BDD scenarios
+│   ├── steps/        # Step definitions
+│   └── pages/        # Page objects
+├── resources/
+│   └── details.ini   # Configuration
+├── Makefile          # Commands
+└── runner.py         # Test runner
 ```
 
-## Other Commands
-
-```bash
-make test-headless    # Run tests without browser UI
-make clean           # Clean up reports and temp files
-make help            # Show all available commands
-```
-
-## Configure
+## Configuration
 
 Edit `resources/details.ini`:
-- `tags = @your-tag` - Run specific tests
-- `headless = true` - Run without browser UI
-- `browser = Chrome` - Change browser
+- `url = https://your-site.com` - Target URL
+- `browser = Chrome` - Browser choice
+- `tags = @smoke` - Which tests to run
+- `headless = true` - Run without UI
 
-Uses `uv` for fast Python environment management.
+Done.
