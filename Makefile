@@ -9,6 +9,7 @@ help:
 	@echo "  test-headless - Run tests in headless mode"
 	@echo "  report      - Open Allure report"
 	@echo "  clean       - Clean up reports and temp files"
+	@echo "  build-container - Build Docker container image"
 	@echo "  help        - Show this help message"
 
 setup:
@@ -34,4 +35,7 @@ clean:
 	rm -rf reports/*
 	rm -rf .venv/__pycache__
 	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -type d -exec rm -rf {} +
+	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+build-container:
+	docker build -t behavex/playwright-framework .

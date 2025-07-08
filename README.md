@@ -16,8 +16,11 @@ Traditional testing frameworks pollute your project with language-specific depen
 # Bootstrap new project
 ./bootstrap-container.sh my-project /path/to/directory
 
-# Run tests
+# Build container image
 cd /path/to/directory/my-project
+make build-container
+
+# Run tests
 ./test
 
 # View reports
@@ -90,6 +93,16 @@ python3 runner.py
 ```bash
 # Clean, simple, no dependencies
 ./test
+```
+
+## Building the Container
+
+```bash
+# Build the framework container image
+make build-container
+
+# Or manually
+docker build -t behavex/playwright-framework .
 ```
 
 ## Legacy Bootstrap (Non-Containerized)
