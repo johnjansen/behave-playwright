@@ -1,0 +1,280 @@
+#!/bin/bash
+set -e
+
+# Container launcher script for Behave-Playwright framework
+# This script provides a native binary feel while running tests in Docker
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IMAGE_NAME="behavex/playwright-framework"
+CONTAINER_NAME="behavex-tests-$$"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if Docker is running
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed. Please install Docker to use this testing framework."
+        exit 1
+    fi
+
+    if ! docker info &> /dev/null; then
+        log_error "Docker is not running. Please start Docker."
+        exit 1
+    fi
+}
+
+# Initialize project structure
+init_project() {
+    log_info "Initializing test project structure..."
+
+    # Create directories
+    mkdir -p tests/features
+    mkdir -p tests/steps
+    mkdir -p tests/pages
+    mkdir -p reports
+
+    # Create sample feature if none exists
+    if [ ! -f tests/features/sample.feature ]; then
+        cat > tests/features/sample.feature << 'EOF'
+Feature: Sample Test
+    As a test automation engineer
+    I want to verify the framework works
+    So that I can write effective tests
+
+    @smoke
+    Scenario: Framework smoke test
+        Given I navigate to the homepage
+        When I verify the page loads
+        Then I should see the page title
+EOF
+    fi
+
+    # Create sample steps if none exists
+    if [ ! -f tests/steps/sample_steps.py ]; then
+        cat > tests/steps/sample_steps.py << 'EOF'
+from behave import given, when, then
+from playwright.sync_api import expect
+
+@given('I navigate to the homepage')
+def navigate_to_homepage(context):
+    context.page.goto(context.base_url)
+
+@when('I verify the page loads')
+def verify_page_loads(context):
+    context.page.wait_for_load_state('networkidle')
+
+@then('I should see the page title')
+def verify_page_title(context):
+    expect(context.page).to_have_title(lambda title: len(title) > 0)
+EOF
+    fi
+
+    # Create __init__.py files
+    touch tests/__init__.py
+    touch tests/steps/__init__.py
+    touch tests/pages/__init__.py
+
+    # Create config if it doesn't exist
+    if [ ! -f tests/test.config ]; then
+        cat > tests/test.config << 'EOF'
+[general]
+delete_old_reports = true
+start_docker_compose = false
+headless = false
+allow_tracing = true
+tags = @smoke
+browser = Chrome
+url = https://httpbin.org
+
+[elk]
+add_in_elk = false
+elk_url = http://localhost:9200
+
+[email]
+send_report_on_email = false
+token =
+sender_email =
+receiver_email =
+
+[test_user]
+username = testuser
+password = testpass
+EOF
+    fi
+
+    log_success "Project structure initialized"
+}
+
+# Build Docker image if it doesn't exist
+build_image() {
+    if ! docker image inspect $IMAGE_NAME &> /dev/null; then
+        log_info "Building Docker image for the first time..."
+        docker build -t $IMAGE_NAME "$SCRIPT_DIR"
+        log_success "Docker image built successfully"
+    fi
+}
+
+# Show help
+show_help() {
+    echo "Behave-Playwright Test Framework"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --headless          Run tests in headless mode"
+    echo "  --tag TAG           Run tests with specific tag (e.g., @smoke)"
+    echo "  --report            Open Allure report server"
+    echo "  --init              Initialize project structure"
+    echo "  --build             Force rebuild Docker image"
+    echo "  --clean             Clean up reports and containers"
+    echo "  --help              Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  Run all tests"
+    echo "  $0 --headless       Run tests without browser UI"
+    echo "  $0 --tag @smoke     Run only smoke tests"
+    echo "  $0 --report         Open test reports"
+    echo "  $0 --init           Set up new test project"
+    echo ""
+    echo "Configuration:"
+    echo "  Edit tests/test.config to modify test settings"
+    echo ""
+}
+
+# Clean up
+cleanup() {
+    log_info "Cleaning up..."
+
+    # Remove containers
+    docker ps -a --filter "name=$CONTAINER_NAME" -q | xargs -r docker rm -f
+
+    # Clean reports
+    if [ -d "reports" ]; then
+        rm -rf reports/*
+        log_success "Reports cleaned"
+    fi
+}
+
+# Main execution
+main() {
+    # Parse arguments
+    INIT=false
+    BUILD=false
+    CLEAN=false
+    DOCKER_ARGS=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --init)
+                INIT=true
+                shift
+                ;;
+            --build)
+                BUILD=true
+                shift
+                ;;
+            --clean)
+                CLEAN=true
+                shift
+                ;;
+            --help)
+                show_help
+                exit 0
+                ;;
+            --report)
+                DOCKER_ARGS="$DOCKER_ARGS --report"
+                shift
+                ;;
+            --headless)
+                DOCKER_ARGS="$DOCKER_ARGS --headless"
+                shift
+                ;;
+            --tag)
+                DOCKER_ARGS="$DOCKER_ARGS --tag $2"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+
+    # Handle special commands
+    if [ "$INIT" = true ]; then
+        init_project
+        exit 0
+    fi
+
+    if [ "$CLEAN" = true ]; then
+        cleanup
+        exit 0
+    fi
+
+    # Check prerequisites
+    check_docker
+
+    # Force build if requested
+    if [ "$BUILD" = true ]; then
+        docker rmi $IMAGE_NAME 2>/dev/null || true
+    fi
+
+    # Build image if needed
+    build_image
+
+    # Validate project structure
+    if [ ! -d "tests" ]; then
+        log_warning "No tests directory found. Run '$0 --init' to set up project structure."
+        exit 1
+    fi
+
+    # Run container
+    log_info "Starting test execution..."
+
+    # Set up port mapping for report server
+    PORT_MAPPING=""
+    if [[ "$DOCKER_ARGS" == *"--report"* ]]; then
+        PORT_MAPPING="-p 8080:8080"
+    fi
+
+    # Run the container
+    docker run --rm \
+        --name $CONTAINER_NAME \
+        $PORT_MAPPING \
+        -v "$SCRIPT_DIR/tests:/tests" \
+        -v "$SCRIPT_DIR/reports:/reports" \
+        $IMAGE_NAME \
+        $DOCKER_ARGS
+
+    # Show results
+    if [[ "$DOCKER_ARGS" != *"--report"* ]]; then
+        log_success "Test execution completed"
+        log_info "View reports with: $0 --report"
+        log_info "Reports saved to: $SCRIPT_DIR/reports/"
+    fi
+}
+
+# Execute main function
+main "$@"
